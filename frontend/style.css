@@ -45,6 +45,18 @@ header p {
   opacity: 0.9;
 }
 
+.kiro-card {
+  background: white;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
 .alert {
   margin: 20px;
   padding: 15px 20px;

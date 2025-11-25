@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Tests - Student Management System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+        }
+        .test-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .test-case.pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-case.fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-case.running {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .test-result {
+            font-size: 14px;
+            color: #666;
+        }
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 10px;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .summary-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Frontend Automation Tests</h1>
+    
+    <button id="runTests" onclick="runAllTests()">Run All Tests</button>
+    
+    <div class="summary" id="summary">
+        <div class="summary-item">
+            <div class="summary-number" id="totalTests">0</div>
+            <div class="summary-label">Total Tests</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-number" id="passedTests">0</div>
+            <div class="summary-label">Passed</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-number" id="failedTests">0</div>
+            <div class="summary-label">Failed</div>
+        </div>
+    </div>
+    
+    <div class="test-container" id="testResults"></div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let testResults = [];
+        let passed = 0;
+        let failed = 0;
+
+        function addTestResult(name, status, message) {
+            const result = { name, status, message };
+            testResults.push(result);
+            
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-case ${status}`;
+            testDiv.innerHTML = `
+                <div class="test-name">${name}</div>
+                <div class="test-result">${message}</div>
+            `;
+            document.getElementById('testResults').appendChild(testDiv);
+            
+            if (status === 'pass') passed++;
+            if (status === 'fail') failed++;
+            
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = testResults.length;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+        }
+
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Test 1: API Connection
+        async function testAPIConnection() {
+            try {
+                const response = await fetch('http://localhost:5000/');
+                if (response.ok) {
+                    addTestResult('API Connection', 'pass', 'Successfully connected to backend API');
+                    return true;
+                } else {
+                    addTestResult('API Connection', 'fail', 'Failed to connect to backend API');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('API Connection', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 2: Get All Students
+        async function testGetStudents() {
+            try {
+                const response = await fetch(`${API_URL}/students`);
+                const data = await response.json();
+                if (response.ok && Array.isArray(data)) {
+                    addTestResult('Get All Students', 'pass', `Retrieved ${data.length} students`);
+                    return true;
+                } else {
+                    addTestResult('Get All Students', 'fail', 'Failed to retrieve students');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Get All Students', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 3: Create Student
+        async function testCreateStudent() {
+            try {
+                const testStudent = {
+                    name: 'Test Student',
+                    email: 'test@example.com',
+                    age: 20,
+                    course: 'Test Course'
+                };
+                
+                const response = await fetch(`${API_URL}/students`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testStudent)
+                });
+                
+                const data = await response.json();
+                if (response.status === 201 && data.id) {
+                    addTestResult('Create Student', 'pass', `Created student with ID: ${data.id}`);
+                    return data.id;
+                } else {
+                    addTestResult('Create Student', 'fail', 'Failed to create student');
+                    return null;
+                }
+            } catch (error) {
+                addTestResult('Create Student', 'fail', `Error: ${error.message}`);
+                return null;
+            }
+        }
+
+        // Test 4: Get Student by ID
+        async function testGetStudentById(id) {
+            try {
+                const response = await fetch(`${API_URL}/students/${id}`);
+                const data = await response.json();
+                if (response.ok && data.id === id) {
+                    addTestResult('Get Student by ID', 'pass', `Retrieved student: ${data.name}`);
+                    return true;
+                } else {
+                    addTestResult('Get Student by ID', 'fail', 'Failed to retrieve student by ID');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Get Student by ID', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 5: Update Student
+        async function testUpdateStudent(id) {
+            try {
+                const updatedStudent = {
+                    name: 'Updated Test Student',
+                    email: 'updated@example.com',
+                    age: 21,
+                    course: 'Updated Course'
+                };
+                
+                const response = await fetch(`${API_URL}/students/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedStudent)
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.name === 'Updated Test Student') {
+                    addTestResult('Update Student', 'pass', 'Successfully updated student');
+                    return true;
+                } else {
+                    addTestResult('Update Student', 'fail', 'Failed to update student');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Update Student', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 6: Search Students
+        async function testSearchStudents() {
+            try {
+                const response = await fetch(`${API_URL}/students/search?q=test`);
+                const data = await response.json();
+                if (response.ok && Array.isArray(data)) {
+                    addTestResult('Search Students', 'pass', `Found ${data.length} matching students`);
+                    return true;
+                } else {
+                    addTestResult('Search Students', 'fail', 'Failed to search students');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Search Students', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 7: Delete Student
+        async function testDeleteStudent(id) {
+            try {
+                const response = await fetch(`${API_URL}/students/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    addTestResult('Delete Student', 'pass', 'Successfully deleted student');
+                    return true;
+                } else {
+                    addTestResult('Delete Student', 'fail', 'Failed to delete student');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Delete Student', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 8: Validation - Invalid Email
+        async function testInvalidEmail() {
+            try {
+                const invalidStudent = {
+                    name: 'Test Student',
+                    email: 'invalid-email',
+                    age: 20,
+                    course: 'Test Course'
+                };
+                
+                const response = await fetch(`${API_URL}/students`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(invalidStudent)
+                });
+                
+                if (response.status === 400) {
+                    addTestResult('Validation - Invalid Email', 'pass', 'Correctly rejected invalid email');
+                    return true;
+                } else {
+                    addTestResult('Validation - Invalid Email', 'fail', 'Failed to validate email');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Validation - Invalid Email', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 9: Validation - Invalid Age
+        async function testInvalidAge() {
+            try {
+                const invalidStudent = {
+                    name: 'Test Student',
+                    email: 'test@example.com',
+                    age: 200,
+                    course: 'Test Course'
+                };
+                
+                const response = await fetch(`${API_URL}/students`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(invalidStudent)
+                });
+                
+                if (response.status === 400) {
+                    addTestResult('Validation - Invalid Age', 'pass', 'Correctly rejected invalid age');
+                    return true;
+                } else {
+                    addTestResult('Validation - Invalid Age', 'fail', 'Failed to validate age');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Validation - Invalid Age', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 10: Get Non-existent Student
+        async function testGetNonexistentStudent() {
+            try {
+                const response = await fetch(`${API_URL}/students/99999`);
+                if (response.status === 404) {
+                    addTestResult('Get Non-existent Student', 'pass', 'Correctly returned 404 for non-existent student');
+                    return true;
+                } else {
+                    addTestResult('Get Non-existent Student', 'fail', 'Failed to handle non-existent student');
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('Get Non-existent Student', 'fail', `Error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const button = document.getElementById('runTests');
+            button.disabled = true;
+            button.textContent = 'Running Tests...';
+            
+            // Clear previous results
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+            passed = 0;
+            failed = 0;
+            updateSummary();
+            
+            // Run tests sequentially
+            const apiConnected = await testAPIConnection();
+            await sleep(500);
+            
+            if (apiConnected) {
+                await testGetStudents();
+                await sleep(500);
+                
+                const studentId = await testCreateStudent();
+                await sleep(500);
+                
+                if (studentId) {
+                    await testGetStudentById(studentId);
+                    await sleep(500);
+                    
+                    await testUpdateStudent(studentId);
+                    await sleep(500);
+                    
+                    await testSearchStudents();
+                    await sleep(500);
+                    
+                    await testDeleteStudent(studentId);
+                    await sleep(500);
+                }
+                
+                await testInvalidEmail();
+                await sleep(500);
+                
+                await testInvalidAge();
+                await sleep(500);
+                
+                await testGetNonexistentStudent();
+            }
+            
+            button.disabled = false;
+            button.textContent = 'Run All Tests';
+            
+            // Show final summary
+            console.log(`Tests completed: ${passed} passed, ${failed} failed`);
+        }
+    </script>
+</body>
+</html>
